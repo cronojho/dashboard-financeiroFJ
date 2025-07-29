@@ -1,16 +1,46 @@
-# Arquivo: dashboard.py (ATUALIZADO)
+# Arquivo: dashboard.py (ATUALIZADO COM SENHA)
 
 import streamlit as st
 import pandas as pd
 import sqlite3
 from datetime import datetime
 
+# --- FUNÇÃO DE VERIFICAÇÃO DE SENHA ---
+def check_password():
+    """Retorna True se a senha estiver correta, False caso contrário."""
+    
+    # Usa st.secrets para buscar as senhas de forma segura
+    correct_password_fernando = st.secrets["passwords"]["fernando"]
+    correct_password_jhonatan = st.secrets["passwords"]["jhonatan"]
+
+    # Pede a senha para o usuário
+    password = st.text_input("Digite a senha para acessar:", type="password")
+
+    # Verifica se a senha digitada corresponde a alguma das senhas corretas
+    if password == correct_password_fernando or password == correct_password_jhonatan:
+        return True
+    elif password: # Se o usuário digitou algo, mas está incorreto
+        st.error("Senha incorreta. Por favor, tente novamente.")
+        return False
+    else: # Se o campo de senha está vazio
+        return False
+
+# --- PÁGINA PRINCIPAL DO APP ---
+
 # --- CONFIGURAÇÕES DA PÁGINA ---
 st.set_page_config(page_title="Dashboard da Empresa", layout="wide")
+
+# Verifica a senha antes de mostrar qualquer coisa
+if not check_password():
+    st.stop()  # Para a execução do app se a senha estiver incorreta ou não for inserida
+
+# O restante do seu código do dashboard vem aqui, sem nenhuma alteração.
+# Se a senha estiver correta, o código abaixo será executado normalmente.
 
 # --- FUNÇÃO PARA CARREGAR OS DADOS ---
 @st.cache_data
 def carregar_dados():
+    # ... (o resto do seu código, exatamente como estava)
     try:
         conexao = sqlite3.connect('financas.db')
         df = pd.read_sql_query("SELECT * FROM transacoes", conexao, parse_dates=['data'])
@@ -38,7 +68,7 @@ else:
         ["Tudo", "Seleção Rápida por Mês", "Período Customizado"]
     )
 
-    # Lógica dos filtros de data
+    # Lógica dos filtros de data (sem alteração)
     if tipo_filtro == "Tudo":
         df_filtrado = df.copy()
         periodo_texto = "Todo o Período"
@@ -67,13 +97,12 @@ else:
     if df_filtrado.empty:
         st.info(f"Nenhuma transação encontrada para o período selecionado.")
     else:
-        # --- CÁLCULOS PRINCIPAIS ---
+        # CÁLCULOS E EXIBIÇÃO DOS QUADROS (sem alteração)
         receita_bruta = df_filtrado[df_filtrado['categoria'] == 'Receita Bruta']['valor'].sum()
         custos_df = df_filtrado[df_filtrado['categoria'].isin(['Custo Contábil', 'Despesa Operacional'])]
         total_custos_operacionais = abs(custos_df['valor'].sum())
         lucro_operacional = receita_bruta - total_custos_operacionais
         
-        # --- QUADRO: DEMONSTRATIVO DE RESULTADOS ---
         st.header(f"Demonstrativo de Resultados ({periodo_texto})")
         col1, col2, col3 = st.columns(3)
         col1.metric("💰 Receita Bruta", f"R$ {receita_bruta:,.2f}")
@@ -81,9 +110,7 @@ else:
         col3.metric("📊 Lucro Operacional", f"R$ {lucro_operacional:,.2f}")
         st.markdown("---")
 
-        # --- QUADRO: DISTRIBUIÇÃO DE LUCRO AOS SÓCIOS ---
         st.header(f"Distribuição de Lucro aos Sócios ({periodo_texto})")
-        
         df_fernando = df_filtrado[df_filtrado['categoria'] == 'Retirada Sócio (Fernando)']
         retirada_fernando = abs(df_fernando['valor'].sum())
         contagem_fernando = len(df_fernando)
@@ -107,12 +134,9 @@ else:
             st.metric("% sobre o Lucro Operacional", f"{percentual_jhonatan:.2f}%")
         st.markdown("---")
 
-        # --- QUADRO: MOVIMENTAÇÃO DE CAIXA E INVESTIMENTOS ---
         st.header(f"Movimentação de Caixa e Investimentos ({periodo_texto})")
-        
         aplicacoes = abs(df_filtrado[df_filtrado['categoria'] == 'Investimento (Aplicação)']['valor'].sum())
         resgates = df_filtrado[df_filtrado['categoria'] == 'Investimento (Resgate)']['valor'].sum()
-        # --- ALTERAÇÃO APLICADA AQUI ---
         balanco_investimentos = aplicacoes - resgates
         saldo_conta = df_filtrado['valor'].sum()
         
@@ -123,7 +147,6 @@ else:
         col_inv4.metric("🏦 Saldo Final em Conta", f"R$ {saldo_conta:,.2f}")
         st.markdown("---")
 
-        # --- TABELA DE TRANSAÇÕES ---
         st.subheader("Extrato Detalhado do Período")
         st.dataframe(
             df_filtrado[['data', 'descricao', 'valor', 'categoria']].sort_values('data', ascending=False),
