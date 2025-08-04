@@ -1,6 +1,6 @@
 # Arquivos de dados sensíveis e gerados
 extrato.csv
-financas.db
+extrato-movimentacao-renda-fixa.ofx
 
 # Arquivos e pastas do Python
 __pycache__/
