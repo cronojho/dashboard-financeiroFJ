@@ -1,0 +1,15 @@
+# Arquivos de dados sensíveis e gerados
+extrato.csv
+financas.db
+
+# Arquivos e pastas do Python
+__pycache__/
+*.pyc
+
+# Arquivos de ambiente virtual (se você usar)
+venv/
+.venv/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
