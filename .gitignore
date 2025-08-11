@@ -13,3 +13,6 @@ venv/
 # Arquivos de sistema operacional
 .DS_Store
 Thumbs.db
+
+# Ignorar a pasta 'old' e todo o seu conteúdo
+old/
