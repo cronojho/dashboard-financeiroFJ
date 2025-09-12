@@ -1,4 +1,4 @@
-# Arquivo: dashboard.py (ATUALIZADO COM SENHA)
+# Arquivo: dashboard.py (ATUALIZADO E SIMPLIFICADO)
 
 import streamlit as st
 import pandas as pd
@@ -25,22 +25,16 @@ def check_password():
     else: # Se o campo de senha está vazio
         return False
 
-# --- PÁGINA PRINCIPAL DO APP ---
-
 # --- CONFIGURAÇÕES DA PÁGINA ---
 st.set_page_config(page_title="Dashboard da Empresa", layout="wide")
 
-# Verifica a senha antes de mostrar qualquer coisa
+# Chamada da função de senha para proteger o acesso ao dashboard
 if not check_password():
     st.stop()  # Para a execução do app se a senha estiver incorreta ou não for inserida
-
-# O restante do seu código do dashboard vem aqui, sem nenhuma alteração.
-# Se a senha estiver correta, o código abaixo será executado normalmente.
 
 # --- FUNÇÃO PARA CARREGAR OS DADOS ---
 @st.cache_data
 def carregar_dados():
-    # ... (o resto do seu código, exatamente como estava)
     try:
         conexao = sqlite3.connect('financas.db')
         df = pd.read_sql_query("SELECT * FROM transacoes", conexao, parse_dates=['data'])
@@ -63,12 +57,8 @@ else:
     st.sidebar.header("Filtros de Data")
     min_date = df['data'].min()
     max_date = df['data'].max()
-    tipo_filtro = st.sidebar.radio(
-        "Como você quer filtrar o período?",
-        ["Tudo", "Seleção Rápida por Mês", "Período Customizado"]
-    )
-
-    # Lógica dos filtros de data (sem alteração)
+    tipo_filtro = st.sidebar.radio( "Como você quer filtrar o período?", ["Tudo", "Seleção Rápida por Mês", "Período Customizado"])
+    
     if tipo_filtro == "Tudo":
         df_filtrado = df.copy()
         periodo_texto = "Todo o Período"
@@ -97,12 +87,17 @@ else:
     if df_filtrado.empty:
         st.info(f"Nenhuma transação encontrada para o período selecionado.")
     else:
-        # CÁLCULOS E EXIBIÇÃO DOS QUADROS (sem alteração)
-        receita_bruta = df_filtrado[df_filtrado['categoria'] == 'Receita Bruta']['valor'].sum()
-        custos_df = df_filtrado[df_filtrado['categoria'].isin(['Custo Contábil', 'Despesa Operacional'])]
+        # Cria um DataFrame para os cálculos de PERFORMANCE, ignorando o que não deve ser contado.
+        categorias_para_ignorar = ['Movimentação Interna', 'Estorno']
+        df_performance = df_filtrado[~df_filtrado['categoria'].isin(categorias_para_ignorar)]
+
+        # --- CÁLCULOS DE PERFORMANCE ---
+        receita_bruta = df_performance[df_performance['categoria'] == 'Receita Bruta']['valor'].sum()
+        custos_df = df_performance[df_performance['categoria'].isin(['Custo Contábil', 'Despesa Operacional'])]
         total_custos_operacionais = abs(custos_df['valor'].sum())
         lucro_operacional = receita_bruta - total_custos_operacionais
         
+        # --- QUADRO: DEMONSTRATIVO DE RESULTADOS ---
         st.header(f"Demonstrativo de Resultados ({periodo_texto})")
         col1, col2, col3 = st.columns(3)
         col1.metric("💰 Receita Bruta", f"R$ {receita_bruta:,.2f}")
@@ -110,13 +105,13 @@ else:
         col3.metric("📊 Lucro Operacional", f"R$ {lucro_operacional:,.2f}")
         st.markdown("---")
 
+        # --- QUADRO: DISTRIBUIÇÃO DE LUCRO AOS SÓCIOS ---
         st.header(f"Distribuição de Lucro aos Sócios ({periodo_texto})")
-        df_fernando = df_filtrado[df_filtrado['categoria'] == 'Retirada Sócio (Fernando)']
+        df_fernando = df_performance[df_performance['categoria'] == 'Retirada Sócio (Fernando)']
         retirada_fernando = abs(df_fernando['valor'].sum())
         contagem_fernando = len(df_fernando)
         percentual_fernando = (retirada_fernando / lucro_operacional * 100) if lucro_operacional > 0 else 0
-        
-        df_jhonatan = df_filtrado[df_filtrado['categoria'] == 'Retirada Sócio (Jhonatan)']
+        df_jhonatan = df_performance[df_performance['categoria'] == 'Retirada Sócio (Jhonatan)']
         retirada_jhonatan = abs(df_jhonatan['valor'].sum())
         contagem_jhonatan = len(df_jhonatan)
         percentual_jhonatan = (retirada_jhonatan / lucro_operacional * 100) if lucro_operacional > 0 else 0
@@ -134,19 +129,24 @@ else:
             st.metric("% sobre o Lucro Operacional", f"{percentual_jhonatan:.2f}%")
         st.markdown("---")
 
-        st.header(f"Movimentação de Caixa e Investimentos ({periodo_texto})")
-        aplicacoes = abs(df_filtrado[df_filtrado['categoria'] == 'Investimento (Aplicação)']['valor'].sum())
-        resgates = df_filtrado[df_filtrado['categoria'] == 'Investimento (Resgate)']['valor'].sum()
-        balanco_investimentos = aplicacoes - resgates
-        saldo_conta = df_filtrado['valor'].sum()
+        # --- QUADRO: SALDOS DE CAIXA E INVESTIMENTOS ---
+        st.header(f"Saldos de Caixa e Investimentos ({periodo_texto})")
         
-        col_inv1, col_inv2, col_inv3, col_inv4 = st.columns(4)
-        col_inv1.metric("📈 Aplicações", f"R$ {aplicacoes:,.2f}")
-        col_inv2.metric("📉 Resgates", f"R$ {resgates:,.2f}")
-        col_inv3.metric("⚖️ Balanço (Líquido)", f"R$ {balanco_investimentos:,.2f}")
-        col_inv4.metric("🏦 Saldo Final em Conta", f"R$ {saldo_conta:,.2f}")
+        # Cálculo do Saldo do Porquinho (Líquido e Positivo)
+        df_porquinho = df_filtrado[df_filtrado['descricao'].str.contains("CDB PORQUINHO", case=False)]
+        saldo_porquinho_liquido = df_porquinho['valor'].sum()
+        saldo_porquinho_positivo = saldo_porquinho_liquido * -1
+        
+        # Saldo final da conta
+        saldo_conta = df_filtrado['valor'].sum()
+
+        col_saldos1, col_saldos2 = st.columns(2)
+        col_saldos1.metric("🐷 Saldo Porquinho (Líquido)", f"R$ {saldo_porquinho_positivo:,.2f}")
+        col_saldos2.metric("🏦 Saldo Final em Conta", f"R$ {saldo_conta:,.2f}")
+        
         st.markdown("---")
 
+        # --- TABELA DE TRANSAÇÕES ---
         st.subheader("Extrato Detalhado do Período")
         st.dataframe(
             df_filtrado[['data', 'descricao', 'valor', 'categoria']].sort_values('data', ascending=False),
