@@ -37,9 +37,9 @@ def categorizar_transacao(row):
         return 'Despesa Operacional'
         
     # 5. Investimentos
-    if 'aplicacao' in desc and 'porquinho' in desc and valor < 0:
+    if 'aplicacao' in desc and 'porquinho' in desc or 'cdb' in desc and valor < 0:
         return 'Investimento (Aplicação)'
-    if 'resgate' in desc and 'porquinho' in desc and valor > 0:
+    if 'resgate' in desc and 'porquinho' in desc or 'cdb' in desc and valor > 0:
         return 'Investimento (Resgate)'
 
     # 6. Outras Entradas
