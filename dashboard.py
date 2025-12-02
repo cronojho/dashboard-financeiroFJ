@@ -133,7 +133,7 @@ else:
         st.header(f"Saldos de Caixa e Investimentos ({periodo_texto})")
         
         # Cálculo do Saldo do Porquinho (Líquido e Positivo)
-        df_porquinho = df_filtrado[df_filtrado['descricao'].str.contains("CDB PORQUINHO", case=False)]
+        df_porquinho = df_filtrado[df_filtrado['descricao'].str.contains("CDB", case=False)]
         saldo_porquinho_liquido = df_porquinho['valor'].sum()
         saldo_porquinho_positivo = saldo_porquinho_liquido * -1
         
